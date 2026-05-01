@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Costa Rica Trip - Grocery List</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif; }
+        .gradient-bg { background: linear-gradient(to bottom right, #fef3c7, #fed7aa, #fecaca); }
+    </style>
+</head>
+<body class="gradient-bg">
+    <div id="root"></div>
+    
+    <script>
+        const { useState, useEffect } = React;
+
+        function CostaRicaGroceryList() {
+            const [items, setItems] = useState([]);
+            const [newItem, setNewItem] = useState('');
+            const [newQuantity, setNewQuantity] = useState('1');
+            const [newCategory, setNewCategory] = useState('groceries');
+            const [newPrice, setNewPrice] = useState('');
+            const [personName, setPersonName] = useState('');
+            const [filterCategory, setFilterCategory] = useState('all');
+
+            // Load from localStorage on mount
+            useEffect(() => {
+                const saved = localStorage.getItem('costaRicaGroceries');
+                if (saved) {
+                    try {
+                        setItems(JSON.parse(saved));
+                    } catch (e) {
+                        console.error('Failed to load saved items');
+                    }
+                }
+            }, []);
+
+            // Save to localStorage whenever items change
+            useEffect(() => {
+                localStorage.setItem('costaRicaGroceries', JSON.stringify(items));
+            }, [items]);
+
+            const addItem = () => {
+                if (!newItem.trim()) return;
+                
+                const item = {
+                    id: Date.now(),
+                    name: newItem.trim(),
+                    quantity: newQuantity || '1',
+                    category: newCategory,
+                    price: newPrice ? parseFloat(newPrice) : 0,
+                    addedBy: personName.trim() || 'Someone',
+                    completed: false,
+                };
+
+                setItems([...items, item]);
+                setNewItem('');
+                setNewQuantity('1');
+                setNewPrice('');
+            };
+
+            const toggleComplete = (id) => {
+                setItems(items.map(item =>
+                    item.id === id ? { ...item, completed: !item.completed } : item
+                ));
+            };
+
+            const deleteItem = (id) => {
+                setItems(items.filter(item => item.id !== id));
+            };
+
+            const clearCompleted = () => {
+                setItems(items.filter(item => !item.completed));
+            };
+
+            const filteredItems = filterCategory === 'all' 
+                ? items 
+                : items.filter(item => item.category === filterCategory);
+
+            const totalPrice = filteredItems.reduce((sum, item) => sum + item.price, 0);
+            const completedCount = filteredItems.filter(item => item.completed).length;
+
+            const groceryItems = filteredItems.filter(item => item.category === 'groceries');
+            const alcoholItems = filteredItems.filter(item => item.category === 'alcohol');
+            const otherItems = filteredItems.filter(item => item.category === 'other');
+
+            return (
+                <div className="min-h-screen p-4 pb-32">
+                    {/* Header */}
+                    <div className="max-w-2xl mx-auto mb-8">
+                        <div className="text-center mb-6">
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                                <span style={{ fontSize: '32px' }}>🛒</span>
+                                <h1 className="text-3xl font-bold text-amber-900">Costa Rica Trip</h1>
+                            </div>
+                            <p className="text-amber-700 font-medium">San José Walmart Run</p>
+                            <p className="text-sm text-amber-600 mt-2">Dominicalito adventure awaits 🌴</p>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="grid grid-cols-2 gap-3 mb-6">
+                            <div className="bg-white rounded-lg p-3 shadow-sm border border-amber-200">
+                                <p className="text-xs text-amber-600 font-semibold uppercase">Total Items</p>
+                                <p className="text-2xl font-bold text-amber-900">{filteredItems.length}</p>
+                            </div>
+                            <div className="bg-white rounded-lg p-3 shadow-sm border border-amber-200">
+                                <p className="text-xs text-amber-600 font-semibold uppercase">Est. Cost</p>
+                                <p className="text-2xl font-bold text-amber-900">${totalPrice.toFixed(2)}</p>
+                            </div>
+                        </div>
+
+                        {/* Filter Tabs */}
+                        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+                            {['all', 'groceries', 'alcohol', 'other'].map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setFilterCategory(cat)}
+                                    style={{
+                                        backgroundColor: filterCategory === cat ? '#b45309' : 'white',
+                                        color: filterCategory === cat ? 'white' : '#b45309',
+                                        border: filterCategory === cat ? 'none' : '1px solid #fcd34d'
+                                    }}
+                                    className="px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap transition"
+                                >
+                                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Add Item Form */}
+                    <div className="max-w-2xl mx-auto mb-8 bg-white rounded-xl shadow-lg p-6 border border-amber-200">
+                        <h2 className="text-lg font-bold text-amber-900 mb-4">Add to List</h2>
+                        
+                        <div className="space-y-3 mb-4">
+                            {/* Person Name */}
+                            <input
+                                type="text"
+                                placeholder="Your name (optional)"
+                                value={personName}
+                                onChange={(e) => setPersonName(e.target.value)}
+                                className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+                            />
+
+                            {/* Item Name */}
+                            <input
+                                type="text"
+                                placeholder="What do you need? (e.g., Eggs, Corona, Tortillas)"
+                                value={newItem}
+                                onChange={(e) => setNewItem(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && addItem()}
+                                className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+                            />
+
+                            {/* Category, Quantity, Price */}
+                            <div className="grid grid-cols-3 gap-3">
+                                <select
+                                    value={newCategory}
+                                    onChange={(e) => setNewCategory(e.target.value)}
+                                    className="px-3 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm bg-white"
+                                >
+                                    <option value="groceries">Groceries</option>
+                                    <option value="alcohol">Alcohol</option>
+                                    <option value="other">Other</option>
+                                </select>
+
+                                <input
+                                    type="number"
+                                    placeholder="Qty"
+                                    value={newQuantity}
+                                    onChange={(e) => setNewQuantity(e.target.value)}
+                                    min="1"
+                                    className="px-3 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+                                />
+
+                                <input
+                                    type="number"
+                                    placeholder="Price ($)"
+                                    value={newPrice}
+                                    onChange={(e) => setNewPrice(e.target.value)}
+                                    step="0.01"
+                                    min="0"
+                                    className="px-3 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={addItem}
+                            disabled={!newItem.trim()}
+                            style={{
+                                background: newItem.trim() ? 'linear-gradient(to right, #d97706, #ea580c)' : '#d1d5db',
+                                cursor: newItem.trim() ? 'pointer' : 'not-allowed'
+                            }}
+                            className="w-full text-white font-bold py-3 rounded-lg transition"
+                        >
+                            + Add Item
+                        </button>
+                    </div>
+
+                    {/* Items List */}
+                    <div className="max-w-2xl mx-auto">
+                        {filteredItems.length === 0 ? (
+                            <div className="text-center py-16 bg-white rounded-xl border border-amber-200">
+                                <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}>🛒</span>
+                                <p className="text-amber-700 font-medium">No items yet. Start adding! 🛒</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {/* Groceries Section */}
+                                {groceryItems.length > 0 && (
+                                    <div className="mb-6">
+                                        <h3 className="text-sm font-bold text-amber-700 uppercase tracking-wider mb-3 px-2">
+                                            🥕 Groceries
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {groceryItems.map(item => (
+                                                <ItemRow key={item.id} item={item} onToggle={toggleComplete} onDelete={deleteItem} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Alcohol Section */}
+                                {alcoholItems.length > 0 && (
+                                    <div className="mb-6">
+                                        <h3 className="text-sm font-bold text-amber-700 uppercase tracking-wider mb-3 px-2">
+                                            🍺 Alcohol
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {alcoholItems.map(item => (
+                                                <ItemRow key={item.id} item={item} onToggle={toggleComplete} onDelete={deleteItem} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Other Section */}
+                                {otherItems.length > 0 && (
+                                    <div className="mb-6">
+                                        <h3 className="text-sm font-bold text-amber-700 uppercase tracking-wider mb-3 px-2">
+                                            📦 Other
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {otherItems.map(item => (
+                                                <ItemRow key={item.id} item={item} onToggle={toggleComplete} onDelete={deleteItem} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Progress Bar */}
+                                {filteredItems.length > 0 && (
+                                    <div className="mt-8 bg-white rounded-xl p-4 border border-amber-200">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <p className="text-sm font-semibold text-amber-900">Progress</p>
+                                            <p className="text-xs text-amber-600">{completedCount} of {filteredItems.length} done</p>
+                                        </div>
+                                        <div className="w-full bg-amber-100 rounded-full h-3 overflow-hidden">
+                                            <div
+                                                style={{
+                                                    background: 'linear-gradient(to right, #10b981, #059669)',
+                                                    width: `${(completedCount / filteredItems.length) * 100}%`,
+                                                    height: '100%',
+                                                    transition: 'width 0.3s ease'
+                                                }}
+                                            />
+                                        </div>
+                                        {completedCount === filteredItems.length && filteredItems.length > 0 && (
+                                            <p className="text-center text-green-600 font-bold text-sm mt-2">✓ All set! 🎉</p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Clear Completed Button */}
+                                {completedCount > 0 && (
+                                    <button
+                                        onClick={clearCompleted}
+                                        className="w-full mt-4 bg-amber-100 text-amber-700 font-medium py-2 rounded-lg hover:bg-amber-200 transition text-sm"
+                                    >
+                                        Clear Completed ({completedCount})
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Footer Info */}
+                    <div className="max-w-2xl mx-auto mt-12 text-center text-xs text-amber-600">
+                        <p className="mb-2">💾 Data saves automatically to your device</p>
+                        <p>Share this link with your group to add their items!</p>
+                    </div>
+                </div>
+            );
+        }
+
+        function ItemRow({ item, onToggle, onDelete }) {
+            return (
+                <div
+                    onClick={() => onToggle(item.id)}
+                    style={{
+                        backgroundColor: item.completed ? '#f0fdf4' : '#fffbeb',
+                        borderColor: item.completed ? '#dcfce7' : '#fef3c7',
+                        cursor: 'pointer'
+                    }}
+                    className="flex items-center gap-3 p-4 rounded-lg transition border"
+                >
+                    {/* Checkbox */}
+                    <div className="flex-shrink-0">
+                        <span style={{ fontSize: '24px' }}>
+                            {item.completed ? '✓' : '○'}
+                        </span>
+                    </div>
+
+                    {/* Item Details */}
+                    <div className="flex-grow min-w-0">
+                        <p style={{
+                            fontWeight: 500,
+                            fontSize: '14px',
+                            color: item.completed ? '#9ca3af' : '#78350f',
+                            textDecoration: item.completed ? 'line-through' : 'none'
+                        }}>
+                            {item.name} <span style={{ color: '#b45309', fontSize: '12px' }}>× {item.quantity}</span>
+                        </p>
+                        <p style={{ color: '#b45309', fontSize: '12px' }}>
+                            {item.addedBy} {item.price > 0 && `• $${item.price.toFixed(2)}`}
+                        </p>
+                    </div>
+
+                    {/* Delete Button */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(item.id);
+                        }}
+                        className="flex-shrink-0 p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}
+                    >
+                        ✕
+                    </button>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CostaRicaGroceryList />);
+    </script>
+</body>
+</html>
